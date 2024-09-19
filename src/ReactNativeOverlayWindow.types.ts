@@ -1,7 +1,3 @@
-export type ChangeEventPayload = {
-  value: string;
-};
+export type IListener =  { visible: boolean }
 
-export type ReactNativeOverlayWindowViewProps = {
-  name: string;
-};
+export type ICreateOverlay= { title?: string, body?: string }

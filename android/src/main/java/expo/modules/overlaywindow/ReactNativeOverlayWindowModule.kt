@@ -1,47 +1,97 @@
 package expo.modules.overlaywindow
 
+import android.app.Activity
+import android.content.Context
+import android.graphics.PixelFormat
+import android.os.Build
+import android.util.Log
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.View
+import android.view.WindowManager
+import android.widget.TextView
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import androidx.core.os.bundleOf
+import android.widget.ImageView
 
 class ReactNativeOverlayWindowModule : Module() {
-  // Each module class must implement the definition function. The definition consists of components
-  // that describes the module's functionality and behavior.
-  // See https://docs.expo.dev/modules/module-api for more details about available components.
+  
+  private lateinit var windowManager: WindowManager
+  private lateinit var overlayView: View
+
   override fun definition() = ModuleDefinition {
-    // Sets the name of the module that JavaScript code will use to refer to the module. Takes a string as an argument.
-    // Can be inferred from module's class name, but it's recommended to set it explicitly for clarity.
-    // The module will be accessible from `requireNativeModule('ReactNativeOverlayWindow')` in JavaScript.
     Name("ReactNativeOverlayWindow")
 
-    // Sets constant properties on the module. Can take a dictionary or a closure that returns a dictionary.
-    Constants(
-      "PI" to Math.PI
-    )
+    Events("onOverlayVisibilityChange")
 
-    // Defines event names that the module can send to JavaScript.
-    Events("onChange")
-
-    // Defines a JavaScript synchronous function that runs the native code on the JavaScript thread.
-    Function("hello") {
-      "Hello world! 👋"
-    }
-
-    // Defines a JavaScript function that always returns a Promise and whose native code
-    // is by default dispatched on the different thread than the JavaScript runtime runs on.
-    AsyncFunction("setValueAsync") { value: String ->
-      // Send an event to JavaScript.
-      sendEvent("onChange", mapOf(
-        "value" to value
-      ))
-    }
-
-    // Enables the module to be used as a native view. Definition components that are accepted as part of
-    // the view definition: Prop, Events.
-    View(ReactNativeOverlayWindowView::class) {
-      // Defines a setter for the `name` prop.
-      Prop("name") { view: ReactNativeOverlayWindowView, prop: String ->
-        println(prop)
+    AsyncFunction("createOverlay") { options: Map<String, Any> ->
+      val activity = appContext.activityProvider?.currentActivity
+      val title = options["title"] as? String ?: "Default Title"
+      val body = options["body"] as? String ?: "Default Body"
+    
+      if (activity != null) {
+        setupOverlay(activity.applicationContext, title, body, options)
+        sendOverlayVisibilityEvent(true)
+        "Overlay created"
+      } else {
+        "Activity is null"
       }
     }
+
+    Function("removeOverlay") {
+      removeOverlay()
+      sendOverlayVisibilityEvent(false)
+      "Overlay removed"
+    }
+  }
+
+  private fun setupOverlay(context: Context, title: String, body: String, options: Map<String, Any>) {
+    windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+    val inflater = LayoutInflater.from(context)
+    overlayView = inflater.inflate(R.layout.overlay_layout, null)
+
+    val titleTextView: TextView = overlayView.findViewById(R.id.title_text)
+    val bodyTextView: TextView = overlayView.findViewById(R.id.body_text)
+
+    titleTextView.text = title
+    bodyTextView.text = body
+
+    if (body.isEmpty()) { bodyTextView.visibility = View.GONE} else {bodyTextView.visibility = View.VISIBLE}
+    if (title.isEmpty()) { titleTextView.visibility = View.GONE} else {titleTextView.visibility = View.VISIBLE}
+
+
+    val layoutParams = WindowManager.LayoutParams(
+      WindowManager.LayoutParams.WRAP_CONTENT,
+      WindowManager.LayoutParams.WRAP_CONTENT,
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+      } else {
+        WindowManager.LayoutParams.TYPE_PHONE
+      },
+      WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+      PixelFormat.TRANSLUCENT
+    )
+    layoutParams.gravity = Gravity.TOP or Gravity.START
+    layoutParams.x=30
+    layoutParams.y=30
+
+    val closeButton: ImageView = overlayView.findViewById(R.id.close_button)
+    closeButton.setOnClickListener {
+      removeOverlay()
+      sendOverlayVisibilityEvent(false)
+    }
+
+    windowManager.addView(overlayView, layoutParams)
+  }
+
+  private fun removeOverlay() {
+    if (::windowManager.isInitialized && ::overlayView.isInitialized) {
+      windowManager.removeView(overlayView)
+    }
+  }
+
+  private fun sendOverlayVisibilityEvent(isVisible: Boolean) {
+    this@ReactNativeOverlayWindowModule.sendEvent("onOverlayVisibilityChange", bundleOf("visible" to isVisible))
   }
 }
