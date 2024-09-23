@@ -19,3 +19,7 @@ export async function createOverlayAsync(options: ICreateOverlay): Promise<strin
 export async function removeOverlayAsync(): Promise<string> {
   return await ReactNativeOverlayWindowModule.removeOverlay();
 }
+
+export async function checkPermission(): Promise<boolean> {
+  return ReactNativeOverlayWindowModule.checkPermission();
+}
