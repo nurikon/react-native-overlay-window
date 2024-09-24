@@ -1,6 +1,6 @@
 {
   "name": "react-native-overlay-window",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "open overlay window on android ",
   "main": "build/index.js",
   "types": "build/index.d.ts",

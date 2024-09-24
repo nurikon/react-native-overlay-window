@@ -39,18 +39,28 @@ class ReactNativeOverlayWindowModule : Module() {
             Settings.canDrawOverlays(context)
         }
 
+        // AsyncFunction("createOverlay") { options: Map<String, Any> ->
+        //     val activity = appContext.activityProvider?.currentActivity
+        //     val title = options["title"] as? String ?: "Default Title"
+        //     val body = options["body"] as? String ?: "Default Body"
+
+        //     if (activity != null) {
+        //         setupOverlay(activity.applicationContext, title, body, options)
+        //         sendOverlayVisibilityEvent(true)
+        //         "Overlay created"
+        //     } else {
+        //         "Activity is null"
+        //     }
+        // }
+
         AsyncFunction("createOverlay") { options: Map<String, Any> ->
-            val activity = appContext.activityProvider?.currentActivity
+            val context = appContext.reactContext ?: throw Exceptions.ReactContextLost()
             val title = options["title"] as? String ?: "Default Title"
             val body = options["body"] as? String ?: "Default Body"
 
-            if (activity != null) {
-                setupOverlay(activity.applicationContext, title, body, options)
-                sendOverlayVisibilityEvent(true)
-                "Overlay created"
-            } else {
-                "Activity is null"
-            }
+            setupOverlay(context, title, body, options)
+            sendOverlayVisibilityEvent(true)
+            "Overlay created"
         }
 
         Function("removeOverlay") {
